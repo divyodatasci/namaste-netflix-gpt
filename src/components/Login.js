@@ -1,17 +1,65 @@
 import React, { useState , useRef } from 'react';
 import Header from './Header';
 import { checkValidData } from './utils/validate';
-
+import { auth } from './utils/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile} from "firebase/auth";
+import { useDispatch } from 'react-redux';
+import { addUser } from './utils/UserSlice';
 
 const Login = () => {
   const [isSignIn, setIsSignIn] = useState(true);
   const [errorMessage, setErrorMessage]= useState(null);
+  const dispatch = useDispatch();
 
+  const name = useRef(null);
   const email = useRef(null);
   const password = useRef(null);
   const handleButtonClick =() => {
     const message = checkValidData(email.current.value, password.current.value);
     setErrorMessage(message);
+    if(message) return;
+
+    if(message === null && !isSignIn){
+      createUserWithEmailAndPassword(auth, email.current.value, password.current.value)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        console.log('signed up', user);
+        updateProfile(user, {
+          displayName: name.current.value,
+        })
+        .then(() => {
+          const {uid, email, displayName} = auth.currentUser;
+          dispatch(
+            addUser({
+              uid: uid,
+              email: email,
+              displayName: displayName,
+
+            })
+          );
+        })
+        .catch((error) => {
+          setErrorMessage(errorMessage);
+        });
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        setErrorMessage(errorCode + " - " + errorMessage);
+      });
+    }
+    else if(message=== null && isSignIn){
+      signInWithEmailAndPassword(auth, email.current.value, password.current.value)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        console.log('signed in', user);
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        setErrorMessage(errorCode + " - " + errorMessage);
+      });
+    }
   }
   const toggleSignInForm = () => {
     setIsSignIn(!isSignIn);
@@ -33,6 +81,7 @@ const Login = () => {
           type='text'
           placeholder='Full Name'
           className='p-4 my-4 w-full bg-gray-700'
+          ref={name}
         />)}
         <input 
           type='text'
