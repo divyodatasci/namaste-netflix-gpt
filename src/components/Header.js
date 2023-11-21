@@ -13,16 +13,10 @@ const Header = () => {
   const user = useSelector((store) => store.user);
   const handleSignOut = () => {
     signOut(auth)
-    // .then(() => {
-    //   navigate("/");
-    // })
-    // .catch((error) => {
-    //   navigate("/");
-    // });
   };
 
   useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if(user) {
         const { uid, email, displayName } = user;
         dispatch(addUser({uid: uid, email: email, displayName: displayName}));
@@ -33,6 +27,9 @@ const Header = () => {
         navigate('/');
       }
     })
+
+    //unsubscribe when component unmounts
+    return () => unsubscribe();
   }, [ ]);
   return (
     <div className='absolute z-10 px-8 py-2 bg-gradient-to-b from-black flex justify-between w-full'>
